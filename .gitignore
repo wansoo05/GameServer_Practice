@@ -1,0 +1,63 @@
+# ASP.NET Core / C#
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+out/
+
+# Rider
+.idea/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# EF Core Migrations
+**/Migrations/*.cs
+
+# Visual Studio test results
+TestResults/
+coverage*.xml
+
+# User secrets
+secrets.json
+
+# Local settings
+appsettings.Development.json
+appsettings.*.local.json
+
+# Logs
+*.log
+Logs/
+
+# IIS Express
+/IISExpress/**/*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if using frontend tooling)
+node_modules/
+
+# Redis dump
+dump.rdb
+\# Service account key (do not commit!)
+GameServer_01/google-service-account.json
+
+# Docker
+**/docker-compose.override.yml
+**/.docker/**
+
+# Editor backups
+*~
+*.swp
