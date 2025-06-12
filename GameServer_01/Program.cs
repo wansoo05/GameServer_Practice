@@ -11,125 +11,141 @@ using Microsoft.Extensions.Options;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 
+// WebApplication ì´ˆê¸°í™”
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.Services.AddStackExchangeRedisCache(options =>
-//{
-//    options.Configuration = builder.Configuration["Redis:Configuration"];
-//    options.InstanceName = "GameServerSession:";
-//});
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ Redis ìºì‹œ ì„¤ì • â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// StackExchange.Redis ê¸°ë°˜ì˜ ë¶„ì‚° ìºì‹œë¥¼ ì‚¬ìš©í•˜ë„ë¡ ì„¤ì •
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:Configuration"];   // Redis ì—°ê²° ë¬¸ìì—´
+    options.InstanceName = "GameServerSession:";                          // Redis í‚¤ ì•ì— ë¶™ì¼ ì¸ìŠ¤í„´ìŠ¤ ë„¤ì„ìŠ¤í˜ì´ìŠ¤
+});
 
-//builder.Services.AddSession(options =>
-//{
-//    options.Cookie.Name = ".GameServer.Session";
-//    options.IdleTimeout = TimeSpan.FromHours(1);
-//    options.Cookie.HttpOnly = true;
-//    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-//    options.Cookie.SameSite = SameSiteMode.Strict;
-//    //options.Cookie.IsEssential = true;
-//});
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ ì„¸ì…˜(Stateful) ì„¤ì • â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ì„œë²„ ì¸¡ ì„¸ì…˜ ìƒíƒœë¥¼ Redisì— ì €ì¥
+builder.Services.AddSession(options =>
+{
+    options.Cookie.Name = ".GameServer.Session";           // ì„¸ì…˜ ì¿ í‚¤ ì´ë¦„
+    options.IdleTimeout = TimeSpan.FromHours(1);           // 1ì‹œê°„ ë™ì•ˆ ìš”ì²­ ì—†ìœ¼ë©´ ì„¸ì…˜ ë§Œë£Œ
+    options.Cookie.HttpOnly = true;                            // í´ë¼ì´ì–¸íŠ¸ ìë°”ìŠ¤í¬ë¦½íŠ¸ì—ì„œ ì¿ í‚¤ ì ‘ê·¼ ë¶ˆê°€
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;       // HTTPS ì—°ê²°ì—ì„œë§Œ ì¿ í‚¤ ì „ì†¡
+    options.Cookie.SameSite = SameSiteMode.Strict;             // ì—„ê²©í•œ SameSite ì •ì±…
+    // options.Cookie.IsEssential = true;                         // GDPR ë“±ì—ì„œ í•„ìˆ˜ ì¿ í‚¤ë¡œ í‘œì‹œí•  ë•Œ ì‚¬ìš©
+});
 
-// ¼Ò½º(ÇÁ·ÎÁ§Æ®) ·çÆ® Æú´õ °è»ê
-// (Ãâ·Â Æú´õ bin/Debug/net8.0 ÀÇ »óÀ§ 4´Ü°è¸¦ ¿Ã¶ó°©´Ï´Ù)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ HTTPSìš© ì¸ì¦ì„œ ë¡œë“œ â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// í”„ë¡œì íŠ¸ ë£¨íŠ¸ì˜ certs í´ë”ì— ìˆëŠ” server.pfx ì¸ì¦ì„œ ì‚¬ìš©
 var baseDir = AppContext.BaseDirectory;
 var projectRoot = Directory.GetParent(baseDir)!.Parent!.Parent!.Parent!.FullName;
 var certPath = Path.Combine(projectRoot, "certs", "server.pfx");
 var cert = new X509Certificate2(
    certPath,
-   "PfxPassWordFlashCtrlZ!#%"
+   "PfxPassWordFlashCtrlZ!#%"    // ì¸ì¦ì„œ ë¹„ë°€ë²ˆí˜¸
 );
-// ¦¡¦¡¦¡ 1) Kestrel ¹ÙÀÎµù ¼³Á¤ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+
+// Kestrel ì„œë²„ ì„¤ì •
 builder.WebHost.ConfigureKestrel(opts =>
 {
-    // HTTP  : ¸ğµç IPÀÇ 5000 Æ÷Æ® ¼ö½Å
+    // HTTP 1.1 í¬íŠ¸ 5000 ë°”ì¸ë”©
     opts.ListenAnyIP(5000, listen => listen.Protocols = HttpProtocols.Http1);
 
+    // HTTPS ê¸°ë³¸ ì¸ì¦ì„œ ì§€ì •
     opts.ConfigureHttpsDefaults(httpsOptions =>
     {
-        // ¸ğµç HTTPS ¹ÙÀÎµù(=µğÆúÆ® Æ÷ÇÔ)¿¡ ÀÌ certÀ» ¾¹´Ï´Ù.
         httpsOptions.ServerCertificate = cert;
     });
 
-    opts.ListenAnyIP(5001, lo =>
-    {
-        lo.UseHttps();
-    });
+    // HTTPS í¬íŠ¸ 5001 ë°”ì¸ë”© (UseHttps()ë¥¼ í†µí•´ ì¸ì¦ì„œ ìë™ ì ìš©)
+    opts.ListenAnyIP(5001, lo => lo.UseHttps());
 });
 
-// ¦¡¦¡¦¡ 2) EF Core + MySQL (Àç½Ãµµ ¿É¼Ç Æ÷ÇÔ) ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ EF Core + MySQL ì„¤ì • â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// GameDbContextë¥¼ MySQLì— ì—°ê²° (8.0.31 ë²„ì „), ì¬ì‹œë„ ì •ì±… í¬í•¨
 builder.Services.AddDbContext<GameDbContext>(opts =>
     opts.UseMySql(
         builder.Configuration.GetConnectionString("Default"),
         new MySqlServerVersion(new Version(8, 0, 31)),
-        mySqlOpts => mySqlOpts
-            .EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null
-            )
+        mySqlOpts => mySqlOpts.EnableRetryOnFailure(
+            maxRetryCount: 5,                    // ìµœëŒ€ 5íšŒ ì¬ì‹œë„
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null
+        )
     )
 );
 
-// ¦¡¦¡¦¡ 3) Firebase Admin SDK ÃÊ±âÈ­ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ Firebase Admin SDK ì´ˆê¸°í™” â”€â”€â”€â”€â”€â”€â”€â”€â”€
 FirebaseApp.Create(new AppOptions
 {
     Credential = GoogleCredential.FromFile("google-service-account.json")
 });
 
-// ¦¡¦¡¦¡ 4) ÄÁÆ®·Ñ·¯¡¤Swagger µî·Ï ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ DI(ì˜ì¡´ì„± ì£¼ì…) ì„¤ì • â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// IUserService êµ¬í˜„ì²´ ë“±ë¡
 builder.Services.AddScoped<IUserService, UserService>();
+// IContentsService êµ¬í˜„ì²´ ë“±ë¡
 builder.Services.AddScoped<IContentsService, ContentsService>();
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ ì»¨íŠ¸ë¡¤ëŸ¬, JSON ì§ë ¬í™” ì„¤ì • â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// MVC ì»¨íŠ¸ë¡¤ëŸ¬ + Newtonsoft.Jsonìœ¼ë¡œ JSON ì§ë ¬í™”/ì—­ì§ë ¬í™”
 builder.Services.AddControllers().AddNewtonsoftJson();
+
+// Swagger/OpenAPI ì„¤ì •
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ì¸ì¦Â·ì¸ê°€ ì„¤ì •
 builder.Services.AddAuthorization();
 
-
 var app = builder.Build();
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€ ë¯¸ë“¤ì›¨ì–´ íŒŒì´í”„ë¼ì¸ â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// 1) ëª¨ë“  ìš”ì²­ì— ëŒ€í•´ ë¡œê·¸ ì¶œë ¥
 app.Use(async (ctx, next) =>
 {
     Console.WriteLine($"[Incoming] {ctx.Request.Method} {ctx.Request.Path}");
     await next();
 });
 
-// ¦¡¦¡¦¡ 5) °³¹ß È¯°æÀÏ ¶§ Swagger UI È°¼ºÈ­ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// 2) ê°œë°œ í™˜ê²½ì—ì„œ Swagger UI í™œì„±í™”
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// ¦¡¦¡¦¡ 6) HTTPS ¸®´ÙÀÌ·º¼Ç ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// 3) HTTP â†’ HTTPS ë¦¬ë‹¤ì´ë ‰ì…˜
 app.UseHttpsRedirection();
-//app.UseSession();
 
-//// ·Î±×ÀÎ / È¸¿ø°¡ÀÔ¿ë Firebase ÅäÅ« °ËÁõ
-//app.UseWhen(
-//    ctx => ctx.Request.Path.StartsWithSegments("/api/auth"),
-//   branch =>
-//    {
-//        // JWT ÀÎÁõ ½ºÅ´ÀÌ ÀÖ´Ù¸é Firebase ÅäÅ« °ËÁõ
-//        branch.UseAuthentication();
-//branch.UseMiddleware<FirebaseAuthMiddleware>();
-//    }
-//);
+// 4) ì„¸ì…˜ ì‚¬ìš© (AddSession() í›„ì— í˜¸ì¶œí•´ì•¼ í•¨)
+app.UseSession();
 
-//// ±×¿Ü ¸ğµç API : ¼¼¼Ç °ËÁõ
-//app.UseWhen(
-//    ctx => !ctx.Request.Path.StartsWithSegments("/api/auth"),
-//    branch =>
-//    {
-//        branch.UseMiddleware<SessionAuthMiddleware>();
-//    }
-//);
+// 5) /api/auth/** ìš”ì²­ì€ Firebase JWT ì¸ì¦ íë¦„ ì‚¬ìš©
+app.UseWhen(
+    ctx => ctx.Request.Path.StartsWithSegments("/api/auth"),
+    branch =>
+    {
+        branch.UseAuthentication();
+        branch.UseMiddleware<FirebaseAuthMiddleware>();
+    }
+);
 
-app.UseAuthentication();
-app.UseMiddleware<FirebaseAuthMiddleware>();
+// 6) ê·¸ ì™¸ API ìš”ì²­ì€ ì„¸ì…˜ ê¸°ë°˜ ì¸ì¦ íë¦„ ì‚¬ìš©
+app.UseWhen(
+    ctx => !ctx.Request.Path.StartsWithSegments("/api/auth"),
+    branch =>
+    {
+        branch.UseAuthentication();
+        branch.UseMiddleware<SessionAuthMiddleware>();
+    }
+);
 
-// ¦¡¦¡¦¡ 8) ±ÇÇÑ(Authorization) ¹Ìµé¿ş¾î ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// 7) ìµœì¢…ì ìœ¼ë¡œ ê¶Œí•œ ê²€ì‚¬ ë¯¸ë“¤ì›¨ì–´
 app.UseAuthorization();
 
-// ¦¡¦¡¦¡ 9) ÄÁÆ®·Ñ·¯ ¶ó¿ìÆÃ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+// 8) ì»¨íŠ¸ë¡¤ëŸ¬ ë¼ìš°íŒ…
 app.MapControllers();
 
+// 9) ì• í”Œë¦¬ì¼€ì´ì…˜ ì‹¤í–‰
 app.Run();
