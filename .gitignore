@@ -61,3 +61,6 @@ GameServer_01/google-service-account.json
 # Editor backups
 *~
 *.swp
+
+GameServer_01/certs/*.pfx
+GameServer_01/certs/*-key.pem

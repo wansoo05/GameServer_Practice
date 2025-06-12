@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using GameServer_01.Interfaces;
 using GameServer_01.Services;
+using Microsoft.Extensions.Options;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,12 +29,31 @@ var builder = WebApplication.CreateBuilder(args);
 //    //options.Cookie.IsEssential = true;
 //});
 
+// 소스(프로젝트) 루트 폴더 계산
+// (출력 폴더 bin/Debug/net8.0 의 상위 4단계를 올라갑니다)
+var baseDir = AppContext.BaseDirectory;
+var projectRoot = Directory.GetParent(baseDir)!.Parent!.Parent!.Parent!.FullName;
+var certPath = Path.Combine(projectRoot, "certs", "server.pfx");
+var cert = new X509Certificate2(
+   certPath,
+   "PfxPassWordFlashCtrlZ!#%"
+);
 // ─── 1) Kestrel 바인딩 설정 ───────────────────────────────
 builder.WebHost.ConfigureKestrel(opts =>
 {
     // HTTP  : 모든 IP의 5000 포트 수신
     opts.ListenAnyIP(5000, listen => listen.Protocols = HttpProtocols.Http1);
-    opts.ListenAnyIP(5001, (httpsOpt) => { httpsOpt.UseHttps(); });
+
+    opts.ConfigureHttpsDefaults(httpsOptions =>
+    {
+        // 모든 HTTPS 바인딩(=디폴트 포함)에 이 cert을 씁니다.
+        httpsOptions.ServerCertificate = cert;
+    });
+
+    opts.ListenAnyIP(5001, lo =>
+    {
+        lo.UseHttps();
+    });
 });
 
 // ─── 2) EF Core + MySQL (재시도 옵션 포함) ─────────────────
